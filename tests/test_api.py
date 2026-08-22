@@ -70,6 +70,45 @@ def test_ingest_then_query_end_to_end(client):
     assert isinstance(body["retrieval_attempts"], int)
 
 
+def test_pdf_ingest_rebuilds_indexes(client, monkeypatch):
+    from app.api import routes_ingestion
+    from app.ingestion.loader import RawDocument
+
+    def fake_pdf_load(self):
+        return [
+            RawDocument(
+                document_id="pdf-upload",
+                source_url="uploaded-pdf://guide.pdf",
+                title="Guide",
+                raw_html_or_markdown="# Guide\n\n## Page 1\n\nDepends declares reusable FastAPI dependency logic.",
+                is_html=False,
+            )
+        ]
+
+    monkeypatch.setattr(routes_ingestion.UploadedPdfSource, "load", fake_pdf_load)
+
+    ingest_resp = client.post(
+        "/ingest/pdf",
+        files={"file": ("guide.pdf", b"%PDF-pretend", "application/pdf")},
+    )
+    assert ingest_resp.status_code == 200
+    ingest_body = ingest_resp.json()
+    assert ingest_body["documents_ingested"] == 1
+    assert ingest_body["chunks_created"] > 0
+
+    query_resp = client.post("/query", json={"question": "What does Depends do?", "top_k": 5})
+    assert query_resp.status_code == 200
+    assert query_resp.json()["sources"][0]["source_url"] == "uploaded-pdf://guide.pdf"
+
+
+def test_pdf_ingest_rejects_non_pdf_file(client):
+    resp = client.post(
+        "/ingest/pdf",
+        files={"file": ("notes.txt", b"not a pdf", "text/plain")},
+    )
+    assert resp.status_code == 400
+
+
 def test_query_debug_returns_trace(client):
     client.post("/ingest", json={"source": "local"})
     resp = client.post(

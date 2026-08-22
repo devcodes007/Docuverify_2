@@ -8,6 +8,7 @@ the ingestion/retrieval/agent pipeline needs to change.
 """
 from __future__ import annotations
 
+from io import BytesIO
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -68,6 +69,53 @@ class LocalMarkdownSource(DocumentSource):
             )
         logger.info("LocalMarkdownSource loaded %d documents from %s", len(docs), self.directory)
         return docs
+
+
+class PdfExtractionError(ValueError):
+    """Raised when uploaded PDF bytes cannot be parsed into usable text."""
+
+
+class UploadedPdfSource(DocumentSource):
+    """Turns one uploaded PDF into the same raw document shape as local docs."""
+
+    def __init__(self, filename: str, content: bytes):
+        self.filename = Path(filename).name or "uploaded.pdf"
+        self.content = content
+
+    def load(self) -> list[RawDocument]:
+        pages = extract_pdf_pages(self.content)
+        if not pages:
+            return []
+
+        title = Path(self.filename).stem.replace("-", " ").replace("_", " ").title()
+        markdown = f"# {title}\n\n" + "\n\n".join(
+            f"## Page {page_num}\n\n{text}" for page_num, text in pages
+        )
+        return [
+            RawDocument(
+                document_id=f"pdf-{_slugify(Path(self.filename).stem) or 'upload'}",
+                source_url=f"uploaded-pdf://{self.filename}",
+                title=title,
+                raw_html_or_markdown=markdown,
+                is_html=False,
+            )
+        ]
+
+
+def extract_pdf_pages(content: bytes) -> list[tuple[int, str]]:
+    try:
+        from pypdf import PdfReader
+
+        reader = PdfReader(BytesIO(content))
+    except Exception as exc:  # noqa: BLE001 - external parser may raise many exception types
+        raise PdfExtractionError("Could not read PDF file. Please upload a valid, text-based PDF.") from exc
+
+    pages: list[tuple[int, str]] = []
+    for index, page in enumerate(reader.pages, start=1):
+        text = (page.extract_text() or "").strip()
+        if text:
+            pages.append((index, text))
+    return pages
 
 
 class WebDocSource(DocumentSource):

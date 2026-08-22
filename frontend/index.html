@@ -29,7 +29,10 @@
     --contradicted-soft: #f1dcd6;
     --unsupported: #6b6558;
     --unsupported-soft: #e6e2d6;
-    --radius: 3px;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 18px 60px rgba(20, 22, 29, 0.12);
+    --shadow-soft: 0 10px 30px rgba(20, 22, 29, 0.08);
     --display: 'Space Grotesk', sans-serif;
     --body: 'IBM Plex Sans', sans-serif;
     --mono: 'IBM Plex Mono', monospace;
@@ -41,7 +44,10 @@
 
   body {
     margin: 0;
-    background: var(--paper);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(92,147,184,0.18), transparent 28%),
+      radial-gradient(circle at 95% 15%, rgba(47,111,78,0.10), transparent 24%),
+      var(--paper);
     color: var(--text);
     font-family: var(--body);
     line-height: 1.5;
@@ -106,7 +112,10 @@
 
   /* ---------------- Hero ---------------- */
   section.hero {
-    background: linear-gradient(180deg, var(--ink) 0%, var(--ink-soft) 100%);
+    background:
+      radial-gradient(circle at 84% 20%, rgba(92,147,184,0.26), transparent 34%),
+      radial-gradient(circle at 15% 15%, rgba(255,255,255,0.08), transparent 28%),
+      linear-gradient(135deg, #11131a 0%, var(--ink-soft) 58%, #243241 100%);
     color: var(--text-on-ink);
     padding: clamp(40px, 7vw, 84px) clamp(16px, 4vw, 48px) clamp(56px, 8vw, 96px);
     position: relative;
@@ -136,9 +145,9 @@
     display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px;
     font-family: var(--display); font-weight: 600; font-size: 15px;
     background: var(--accent-bright); color: var(--ink); border: none; border-radius: var(--radius);
-    cursor: pointer; text-decoration: none;
+    cursor: pointer; text-decoration: none; box-shadow: 0 12px 30px rgba(92,147,184,0.22);
   }
-  .hero-cta:hover { background: #74a6c7; }
+  .hero-cta:hover { background: #74a6c7; transform: translateY(-1px); }
 
   .hero-pipeline {
     display: flex; align-items: center; gap: 0; margin-top: 46px; flex-wrap: wrap;
@@ -184,7 +193,7 @@
     width: 100%; min-height: 108px; resize: vertical;
     font-family: var(--body); font-size: 15px; color: var(--text);
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 12px; outline: none;
+    padding: 12px; outline: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
   }
   textarea#question:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
@@ -206,9 +215,10 @@
     width: 100%; padding: 12px 16px; font-family: var(--display); font-weight: 600;
     font-size: 15px; letter-spacing: 0.01em; color: var(--text-on-ink);
     background: var(--ink); border: none; border-radius: var(--radius); cursor: pointer;
-    transition: background 120ms ease;
+    transition: background 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+    box-shadow: var(--shadow-soft);
   }
-  button#ask:hover { background: var(--accent); }
+  button#ask:hover { background: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
   button#ask:disabled { opacity: 0.6; cursor: progress; }
   button#clearBtn {
     width: 100%; margin-top: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 12px;
@@ -225,6 +235,80 @@
   }
   .settings-hint { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); margin-top: 5px; }
 
+  .upload-card {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid rgba(59, 110, 143, 0.22);
+    border-radius: var(--radius);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.22)),
+      var(--card);
+    box-shadow: var(--shadow-soft);
+  }
+  .upload-card .eyebrow { color: var(--accent); margin-bottom: 8px; }
+  .upload-title {
+    margin: 0 0 6px 0;
+    font-family: var(--display);
+    font-size: 17px;
+    line-height: 1.2;
+  }
+  .upload-copy {
+    margin: 0 0 12px 0;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .upload-drop {
+    display: block;
+    padding: 14px;
+    border: 1.5px dashed rgba(59, 110, 143, 0.42);
+    border-radius: var(--radius-sm);
+    background: rgba(205, 219, 227, 0.28);
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  }
+  .upload-drop:hover {
+    border-color: var(--accent);
+    background: rgba(205, 219, 227, 0.46);
+    transform: translateY(-1px);
+  }
+  .upload-drop strong {
+    display: block;
+    font-family: var(--display);
+    font-size: 14px;
+  }
+  .upload-drop span {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    word-break: break-word;
+  }
+  .upload-actions { display: flex; gap: 8px; margin-top: 10px; }
+  button#uploadPdf {
+    flex: 1;
+    padding: 10px 12px;
+    font-family: var(--display);
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: var(--text-on-ink);
+    cursor: pointer;
+  }
+  button#uploadPdf:hover { background: #2e5f7e; }
+  button#uploadPdf:disabled { opacity: 0.58; cursor: progress; }
+  .upload-status {
+    min-height: 18px;
+    margin-top: 9px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .upload-status.ok { color: var(--supported); }
+  .upload-status.err { color: var(--contradicted); }
+
   /* ---------------- Main / case file ---------------- */
   main.file { padding: clamp(16px, 3vw, 32px) clamp(16px, 4vw, 48px); }
 
@@ -234,8 +318,8 @@
   }
 
   section.panel {
-    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-    margin-bottom: 18px; overflow: hidden;
+    background: rgba(244,244,238,0.92); border: 1px solid var(--line); border-radius: var(--radius);
+    margin-bottom: 18px; overflow: hidden; box-shadow: var(--shadow-soft);
   }
   .panel-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -432,6 +516,21 @@
     <button id="clearBtn">Clear</button>
     <div class="status-line" id="status"></div>
 
+    <div class="upload-card" id="upload">
+      <p class="eyebrow">Ingest a PDF</p>
+      <h2 class="upload-title">Ask questions from your own document</h2>
+      <p class="upload-copy">Upload a text-based PDF. DocuVerify extracts, chunks, indexes, and verifies answers against it.</p>
+      <label class="upload-drop" for="pdfFile">
+        <strong>Choose PDF</strong>
+        <span id="pdfFileName">No file selected · max 15 MB</span>
+      </label>
+      <input id="pdfFile" type="file" accept="application/pdf,.pdf" hidden />
+      <div class="upload-actions">
+        <button id="uploadPdf" type="button">Ingest PDF →</button>
+      </div>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+
     <div class="settings">
       <label for="apiBase">API base URL</label>
       <input id="apiBase" type="text" placeholder="https://your-backend.onrender.com" />
@@ -548,6 +647,34 @@ const Api = {
       throw new ApiError('The server returned a malformed response.');
     }
   },
+  async upload(path, formData, { timeoutMs = 120000 } = {}) {
+    if (!this.base()) throw new ApiError('No API base URL is configured. Set it in the sidebar first.');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let resp;
+    try {
+      resp = await fetch(`${this.base()}${path}`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === 'AbortError') throw new ApiError(`Upload timed out after ${timeoutMs / 1000}s.`);
+      throw new ApiError(`Could not reach ${this.base()} for PDF ingestion. Check the API base URL and backend status.`);
+    }
+    clearTimeout(timer);
+    if (!resp.ok) {
+      let detail = `upload failed (HTTP ${resp.status})`;
+      try { const body = await resp.json(); if (body.detail) detail = body.detail; } catch {}
+      throw new ApiError(detail, resp.status);
+    }
+    try {
+      return await resp.json();
+    } catch {
+      throw new ApiError('The server returned a malformed upload response.');
+    }
+  },
 };
 
 class ApiError extends Error {
@@ -586,6 +713,50 @@ $('#question').addEventListener('keydown', (e) => {
     if (!e.shiftKey) { e.preventDefault(); ask(); }
   }
 });
+
+const pdfFileInput = $('#pdfFile');
+const pdfFileName = $('#pdfFileName');
+const uploadPdfBtn = $('#uploadPdf');
+const uploadStatus = $('#uploadStatus');
+
+pdfFileInput.addEventListener('change', () => {
+  const file = pdfFileInput.files[0];
+  pdfFileName.textContent = file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : 'No file selected · max 15 MB';
+  uploadStatus.className = 'upload-status';
+  uploadStatus.textContent = '';
+});
+uploadPdfBtn.addEventListener('click', ingestPdf);
+
+async function ingestPdf() {
+  const file = pdfFileInput.files[0];
+  uploadStatus.className = 'upload-status';
+  if (!file) {
+    uploadStatus.className = 'upload-status err';
+    uploadStatus.textContent = 'Choose a PDF first.';
+    return;
+  }
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    uploadStatus.className = 'upload-status err';
+    uploadStatus.textContent = 'Only PDF files are supported.';
+    return;
+  }
+
+  uploadPdfBtn.disabled = true;
+  uploadStatus.textContent = 'Extracting text, chunking, embedding, and rebuilding indexes…';
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const result = await Api.upload('/ingest/pdf', formData);
+    uploadStatus.className = 'upload-status ok';
+    uploadStatus.textContent = `Indexed ${result.documents_ingested} PDF into ${result.chunks_created} chunks. Ask a question now.`;
+    $('#question').placeholder = `Ask about ${file.name}...`;
+  } catch (err) {
+    uploadStatus.className = 'upload-status err';
+    uploadStatus.textContent = err.message || 'PDF ingestion failed.';
+  } finally {
+    uploadPdfBtn.disabled = false;
+  }
+}
 
 function escapeHtml(str) {
   return str.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

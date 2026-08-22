@@ -109,6 +109,7 @@ class DenseResult:
 
 class VectorStore(Protocol):
     def upsert(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None: ...
+    def replace(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None: ...
     def query(self, embedding: list[float], top_k: int) -> list[DenseResult]: ...
     def is_ready(self) -> bool: ...
 
@@ -143,6 +144,13 @@ class ChromaVectorStore:
                 for c in chunks
             ],
         )
+
+    def replace(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None:
+        existing = self._collection.get(include=[])
+        ids = existing.get("ids", [])
+        if ids:
+            self._collection.delete(ids=ids)
+        self.upsert(chunks, embeddings)
 
     def query(self, embedding: list[float], top_k: int) -> list[DenseResult]:
         if self._collection.count() == 0:
