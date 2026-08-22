@@ -1,0 +1,38 @@
+[
+  {
+    "question": "How does Depends work?",
+    "context": "You declare a dependency using the Depends function. FastAPI will call that function with the correct parameters and pass the value it returns into your path operation function's parameter.",
+    "answer": "You declare a dependency using the Depends function, and FastAPI calls it and passes the return value into your path operation function.",
+    "label": "SUPPORTED"
+  },
+  {
+    "question": "How does Depends work?",
+    "context": "You declare a dependency using the Depends function. FastAPI will call that function with the correct parameters and pass the value it returns into your path operation function's parameter.",
+    "answer": "Depends only works for query parameters and cannot be used with request bodies.",
+    "label": "UNSUPPORTED"
+  },
+  {
+    "question": "What happens when a dependency raises an HTTPException?",
+    "context": "If a dependency function raises an HTTPException, the exception propagates up and FastAPI stops processing the request immediately: no further dependencies are called, and the path operation function itself is never called.",
+    "answer": "The path operation function still runs after the exception is raised, and dependencies continue processing normally.",
+    "label": "CONTRADICTED"
+  },
+  {
+    "question": "What is middleware?",
+    "context": "A middleware is a function that works with every request before it is processed by any specific path operation, and also with every response before returning it.",
+    "answer": "A middleware wraps every request and response in the application.",
+    "label": "SUPPORTED"
+  },
+  {
+    "question": "How does FastAPI validate request bodies?",
+    "context": "For request bodies, you declare a Pydantic BaseModel, and FastAPI validates the whole JSON body against that model's fields and types.",
+    "answer": "FastAPI validates request bodies against a Pydantic BaseModel's fields and types.",
+    "label": "SUPPORTED"
+  },
+  {
+    "question": "How does FastAPI validate request bodies?",
+    "context": "For request bodies, you declare a Pydantic BaseModel, and FastAPI validates the whole JSON body against that model's fields and types.",
+    "answer": "FastAPI compiles request bodies into protocol buffers before validation.",
+    "label": "UNSUPPORTED"
+  }
+]

@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DocuVerify — Agentic RAG, verified answers</title>
+<meta name="description" content="DocuVerify combines agentic retrieval with a fine-tuned groundedness classifier to answer documentation questions without blindly trusting generated text." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #14161d;
+    --ink-soft: #1e212b;
+    --paper: #e7e9e1;
+    --paper-warm: #edeee6;
+    --card: #f4f4ee;
+    --line: #cfd1c6;
+    --text: #1b1d22;
+    --text-dim: #5c5f57;
+    --text-on-ink: #eceee6;
+    --text-on-ink-dim: #9aa093;
+    --accent: #3b6e8f;
+    --accent-bright: #5c93b8;
+    --accent-soft: #cddbe3;
+    --supported: #2f6f4e;
+    --supported-soft: #d9e8dc;
+    --contradicted: #a6402c;
+    --contradicted-soft: #f1dcd6;
+    --unsupported: #6b6558;
+    --unsupported-soft: #e6e2d6;
+    --radius: 3px;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--body);
+    line-height: 1.5;
+  }
+
+  a { color: var(--accent); }
+  img, svg { max-width: 100%; }
+
+  .skip-link:focus {
+    position: fixed; top: 8px; left: 8px; z-index: 999;
+    background: var(--ink); color: var(--text-on-ink); padding: 8px 12px; border-radius: var(--radius);
+  }
+  .skip-link { position: absolute; left: -9999px; }
+
+  /* ---------------- Nav / masthead ---------------- */
+  header.masthead {
+    background: var(--ink);
+    color: var(--text-on-ink);
+    padding: 16px clamp(16px, 4vw, 48px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom: 3px solid var(--accent);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-on-ink);
+  }
+  .wordmark .mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border: 2px solid var(--text-on-ink);
+    border-radius: 50%; font-family: var(--mono); font-size: 12px; font-weight: 600;
+  }
+  nav.primary-nav { display: flex; gap: 22px; align-items: center; }
+  nav.primary-nav a {
+    color: var(--text-on-ink-dim); text-decoration: none; font-family: var(--mono);
+    font-size: 12.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  nav.primary-nav a:hover { color: var(--text-on-ink); }
+  .nav-toggle { display: none; }
+  @media (max-width: 720px) {
+    nav.primary-nav { display: none; width: 100%; order: 3; flex-direction: column; align-items: flex-start; gap: 10px; padding-top: 10px; }
+    nav.primary-nav.open { display: flex; }
+    .nav-toggle {
+      display: inline-flex; background: none; border: 1px solid var(--text-on-ink-dim);
+      color: var(--text-on-ink); font-family: var(--mono); font-size: 12px; padding: 6px 10px;
+      border-radius: var(--radius); cursor: pointer;
+    }
+  }
+
+  /* ---------------- Hero ---------------- */
+  section.hero {
+    background: linear-gradient(180deg, var(--ink) 0%, var(--ink-soft) 100%);
+    color: var(--text-on-ink);
+    padding: clamp(40px, 7vw, 84px) clamp(16px, 4vw, 48px) clamp(56px, 8vw, 96px);
+    position: relative;
+    overflow: hidden;
+  }
+  section.hero::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 85% 20%, rgba(92,147,184,0.18), transparent 45%);
+    pointer-events: none;
+  }
+  .hero-inner { max-width: 900px; position: relative; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-bright); margin: 0 0 14px 0;
+  }
+  h1.hero-title {
+    font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5.5vw, 52px);
+    line-height: 1.08; margin: 0 0 20px 0; letter-spacing: -0.01em;
+  }
+  h1.hero-title .verify-word { color: var(--accent-bright); }
+  p.hero-sub {
+    font-size: clamp(15px, 2vw, 17.5px); color: var(--text-on-ink-dim); max-width: 620px;
+    margin: 0 0 30px 0; line-height: 1.65;
+  }
+  .hero-cta {
+    display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px;
+    font-family: var(--display); font-weight: 600; font-size: 15px;
+    background: var(--accent-bright); color: var(--ink); border: none; border-radius: var(--radius);
+    cursor: pointer; text-decoration: none;
+  }
+  .hero-cta:hover { background: #74a6c7; }
+
+  .hero-pipeline {
+    display: flex; align-items: center; gap: 0; margin-top: 46px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12.5px;
+  }
+  .hero-pipeline .pstep {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid rgba(236,238,230,0.22);
+    border-radius: 999px; color: var(--text-on-ink-dim);
+  }
+  .hero-pipeline .pstep b { color: var(--text-on-ink); font-weight: 500; }
+  .hero-pipeline .arrow { color: var(--text-on-ink-dim); padding: 0 10px; }
+
+  /* ---------------- Layout ---------------- */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+  }
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .desk {
+    background: var(--paper-warm);
+    border-right: 1px solid var(--line);
+    padding: clamp(16px, 3vw, 28px);
+    position: sticky;
+    top: 61px;
+    align-self: start;
+    max-height: calc(100vh - 61px);
+    overflow-y: auto;
+  }
+  @media (max-width: 880px) {
+    .desk { position: static; border-right: none; border-bottom: 1px solid var(--line); max-height: none; }
+  }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-dim); margin: 0 0 10px 0;
+  }
+
+  textarea#question {
+    width: 100%; min-height: 108px; resize: vertical;
+    font-family: var(--body); font-size: 15px; color: var(--text);
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px; outline: none;
+  }
+  textarea#question:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  .chip {
+    font-family: var(--mono); font-size: 12px; padding: 5px 9px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    cursor: pointer; color: var(--text-dim);
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  .row { display: flex; align-items: center; justify-content: space-between; margin: 14px 0; gap: 10px; }
+  .toggle-label {
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+
+  button#ask {
+    width: 100%; padding: 12px 16px; font-family: var(--display); font-weight: 600;
+    font-size: 15px; letter-spacing: 0.01em; color: var(--text-on-ink);
+    background: var(--ink); border: none; border-radius: var(--radius); cursor: pointer;
+    transition: background 120ms ease;
+  }
+  button#ask:hover { background: var(--accent); }
+  button#ask:disabled { opacity: 0.6; cursor: progress; }
+  button#clearBtn {
+    width: 100%; margin-top: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 12px;
+    background: transparent; border: 1px solid var(--line); border-radius: var(--radius);
+    color: var(--text-dim); cursor: pointer;
+  }
+  button#clearBtn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .settings { margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--line); }
+  .settings label { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .settings input {
+    width: 100%; font-family: var(--mono); font-size: 12.5px; padding: 7px 9px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--text);
+  }
+  .settings-hint { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); margin-top: 5px; }
+
+  /* ---------------- Main / case file ---------------- */
+  main.file { padding: clamp(16px, 3vw, 32px) clamp(16px, 4vw, 48px); }
+
+  .empty-state {
+    font-family: var(--mono); color: var(--text-dim); font-size: 13.5px;
+    border: 1px dashed var(--line); border-radius: var(--radius); padding: 28px; text-align: center;
+  }
+
+  section.panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    margin-bottom: 18px; overflow: hidden;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper-warm);
+  }
+  .panel-head h2 {
+    margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim); font-weight: 600;
+  }
+  .panel-body { padding: 18px 20px; }
+
+  .answer-text { font-size: 16.5px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+  .answer-text .cite { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
+
+  /* Loading experience: real staged pipeline, driven by SSE step events */
+  .loading-pipeline { display: flex; flex-direction: column; gap: 0; }
+  .lstep {
+    display: flex; align-items: center; gap: 12px; padding: 9px 0;
+    font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+    border-bottom: 1px dashed var(--line);
+  }
+  .lstep:last-child { border-bottom: none; }
+  .lstep .dot {
+    width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px;
+  }
+  .lstep.done { color: var(--text); }
+  .lstep.done .dot { border-color: var(--supported); background: var(--supported-soft); color: var(--supported); }
+  .lstep.active { color: var(--text); }
+  .lstep.active .dot { border-color: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .lstep.active .dot { animation: none; } }
+
+  /* Signature element: the verification stamp */
+  .verdict-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
+  .stamp {
+    font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 10px 18px; border: 3px solid currentColor;
+    border-radius: 4px; transform: rotate(-3deg); position: relative;
+    display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+    animation: stamp-down 260ms ease-out;
+  }
+  .stamp .confidence { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+  .stamp.supported { color: var(--supported); background: var(--supported-soft); }
+  .stamp.contradicted { color: var(--contradicted); background: var(--contradicted-soft); }
+  .stamp.unsupported { color: var(--unsupported); background: var(--unsupported-soft); }
+  @keyframes stamp-down {
+    0% { transform: rotate(-3deg) scale(1.6); opacity: 0; }
+    60% { transform: rotate(-3deg) scale(0.94); opacity: 1; }
+    100% { transform: rotate(-3deg) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) { .stamp { animation: none; } }
+
+  .meta-list { display: flex; flex-wrap: wrap; gap: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--text-dim); }
+  .meta-list b { color: var(--text); font-weight: 600; }
+
+  .refusal-banner {
+    display: flex; gap: 14px; align-items: flex-start;
+    font-size: 14px; color: var(--text);
+    background: var(--unsupported-soft); border: 1px solid var(--unsupported);
+    border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px;
+  }
+  .refusal-banner .icon { font-size: 20px; line-height: 1; color: var(--unsupported); }
+  .refusal-banner h3 { margin: 0 0 6px 0; font-family: var(--display); font-size: 15px; }
+  .refusal-banner p { margin: 0; color: var(--text-dim); font-size: 13.5px; line-height: 1.55; }
+
+  .error-banner {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: var(--contradicted-soft); border: 1px solid var(--contradicted);
+    border-radius: var(--radius); padding: 16px 18px; margin-bottom: 18px;
+  }
+  .error-banner .icon { font-size: 20px; line-height: 1; color: var(--contradicted); }
+  .error-banner h3 { margin: 0 0 6px 0; font-family: var(--display); font-size: 15px; color: var(--contradicted); }
+  .error-banner p { margin: 0; color: var(--text-dim); font-size: 13.5px; line-height: 1.55; }
+
+  /* Evidence ledger */
+  .ledger-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .evidence-card {
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px; position: relative;
+  }
+  .evidence-card .idx {
+    position: absolute; top: -9px; left: 10px; background: var(--ink); color: var(--text-on-ink);
+    font-family: var(--mono); font-size: 10.5px; padding: 2px 6px; border-radius: 2px;
+  }
+  .evidence-card h3 { margin: 4px 0 4px 0; font-family: var(--display); font-size: 14.5px; font-weight: 600; }
+  .evidence-card .section { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+  .score-bar { height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  .score-bar > i { display: block; height: 100%; background: var(--accent); }
+  .evidence-card .score-label { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .evidence-card a { font-family: var(--mono); font-size: 11px; }
+
+  /* Agent trace pipeline */
+  .pipeline { display: flex; flex-wrap: wrap; gap: 0; align-items: stretch; }
+  .step-node {
+    flex: 1 1 140px; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 12px; background: var(--paper); margin: 4px; min-width: 140px;
+  }
+  .step-node .step-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600; }
+  .step-node .step-detail { font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); margin-top: 4px; word-break: break-word; }
+
+  .table-scroll { overflow-x: auto; }
+  .attempts-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; min-width: 480px; }
+  .attempts-table th, .attempts-table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  .attempts-table th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; }
+  .badge.yes { background: var(--supported-soft); color: var(--supported); }
+  .badge.no { background: var(--contradicted-soft); color: var(--contradicted); }
+
+  .status-line { font-family: var(--mono); font-size: 12px; color: var(--text-dim); margin-top: 10px; min-height: 16px; }
+  .status-line.err { color: var(--contradicted); }
+
+  /* ---------------- How it works / Evaluation / About ---------------- */
+  section.info-section {
+    max-width: 900px; margin: 0 auto; padding: clamp(40px, 6vw, 72px) clamp(16px, 4vw, 48px);
+    border-top: 1px solid var(--line);
+  }
+  section.info-section h2 {
+    font-family: var(--display); font-size: clamp(22px, 3vw, 28px); margin: 0 0 8px 0;
+  }
+  section.info-section > p.lead { color: var(--text-dim); max-width: 620px; margin: 0 0 28px 0; }
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .info-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px;
+  }
+  .info-card .step-num { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-bottom: 6px; }
+  .info-card h3 { font-family: var(--display); font-size: 15px; margin: 0 0 6px 0; }
+  .info-card p { font-size: 13.5px; color: var(--text-dim); margin: 0; line-height: 1.55; }
+
+  .eval-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; margin-top: 10px; }
+  .eval-table th, .eval-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .eval-table th { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  footer.site-footer {
+    padding: 24px clamp(16px, 4vw, 48px) 40px; text-align: center;
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to results</a>
+
+<header class="masthead">
+  <a class="wordmark" href="#top"><span class="mark">DV</span>DocuVerify</a>
+  <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav">Menu ▾</button>
+  <nav class="primary-nav" id="primaryNav">
+    <a href="#ask">Ask</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#evaluation">Evaluation</a>
+    <a href="#about">About</a>
+  </nav>
+</header>
+
+<section class="hero" id="top">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Agentic RAG · Groundedness Verification</p>
+    <h1 class="hero-title">Understand documentation.<br>Every answer, <span class="verify-word">verified</span>.</h1>
+    <p class="hero-sub">
+      DocuVerify combines agentic retrieval with a fine-tuned deep-learning
+      groundedness classifier to answer questions from technical
+      documentation — without blindly trusting whatever the model generates.
+      When the evidence isn't there, it says so instead of guessing.
+    </p>
+    <a class="hero-cta" href="#ask">Ask Documentation →</a>
+
+    <div class="hero-pipeline">
+      <span class="pstep"><b>Query</b></span><span class="arrow">→</span>
+      <span class="pstep"><b>Retrieve</b> · BM25 + Dense + Hybrid</span><span class="arrow">→</span>
+      <span class="pstep"><b>Verify</b> · fine-tuned classifier</span><span class="arrow">→</span>
+      <span class="pstep"><b>Answer</b> + evidence + confidence</span>
+    </div>
+  </div>
+</section>
+
+<div class="layout" id="ask">
+  <aside class="desk">
+    <p class="eyebrow">Ask the documentation</p>
+    <textarea id="question" placeholder="e.g. How does FastAPI dependency injection interact with request validation?"></textarea>
+
+    <div class="chips" id="chips">
+      <span class="chip" data-q="What does Depends do?">What does Depends do?</span>
+      <span class="chip" data-q="How does FastAPI handle request validation?">Request validation</span>
+      <span class="chip" data-q="What is the difference between Depends and middleware?">Depends vs middleware</span>
+      <span class="chip" data-q="How do dependencies depend on other dependencies?">Sub-dependencies</span>
+      <span class="chip" data-q="How does FastAPI dependency injection interact with request validation?">DI × validation (multi-hop)</span>
+      <span class="chip" data-q="Does FastAPI support native GraphQL subscriptions?">Undocumented question</span>
+    </div>
+
+    <div class="row">
+      <label class="toggle-label"><input type="checkbox" id="debug" checked> show agent trace</label>
+    </div>
+
+    <button id="ask">Ask →</button>
+    <button id="clearBtn">Clear</button>
+    <div class="status-line" id="status"></div>
+
+    <div class="settings">
+      <label for="apiBase">API base URL</label>
+      <input id="apiBase" type="text" placeholder="https://your-backend.onrender.com" />
+      <div class="settings-hint">Saved in your browser only. Point this at your deployed backend, or leave as localhost for local dev.</div>
+    </div>
+  </aside>
+
+  <main class="file" id="main">
+    <div class="empty-state" id="empty">No query yet — ask a question about the indexed documentation, or try one of the examples on the left.</div>
+    <div id="loadingArea" style="display:none;"></div>
+    <div id="results" style="display:none"></div>
+  </main>
+</div>
+
+<section class="info-section" id="how-it-works">
+  <h2>How it works</h2>
+  <p class="lead">Four decisions, not one blind pipeline. Retrieval strategy, evidence sufficiency, and answer groundedness are each evaluated explicitly instead of assumed.</p>
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="step-num">01 · Classify</div>
+      <h3>Route the query</h3>
+      <p>Simple lookups, concept comparisons, and multi-hop questions get different retrieval strategies — comparisons retrieve each concept separately; multi-hop questions are decomposed into sub-questions first.</p>
+    </div>
+    <div class="info-card">
+      <div class="step-num">02 · Retrieve</div>
+      <h3>BM25 + Dense + Hybrid</h3>
+      <p>Exact identifiers (<code>HTTPException</code>, <code>Depends</code>) match on lexical search; paraphrased questions match on semantic embeddings. Hybrid scoring combines both, normalized to a common scale.</p>
+    </div>
+    <div class="info-card">
+      <div class="step-num">03 · Evaluate & retry</div>
+      <h3>Is that actually enough?</h3>
+      <p>Top-k retrieval isn't assumed sufficient. An evidence evaluator scores coverage and confidence; if it's not enough, the query is reformulated using the specific gap and retried — up to three attempts.</p>
+    </div>
+    <div class="info-card">
+      <div class="step-num">04 · Verify</div>
+      <h3>Fine-tuned groundedness classifier</h3>
+      <p>A trained transformer — not another LLM prompt — checks the generated answer against the retrieved evidence: SUPPORTED, CONTRADICTED, or UNSUPPORTED. Failures trigger a retry, then an honest refusal.</p>
+    </div>
+  </div>
+</section>
+
+<section class="info-section" id="evaluation">
+  <h2>Evaluation</h2>
+  <p class="lead">Retrieval quality is measured, not assumed — Recall@k, Precision@k, and MRR are computed for each retrieval strategy separately and compared, alongside a baseline (single-shot dense RAG) vs. the full agentic pipeline.</p>
+  <table class="eval-table">
+    <thead><tr><th>Strategy</th><th>Recall@5</th><th>Precision@5</th><th>MRR</th></tr></thead>
+    <tbody>
+      <tr><td>BM25</td><td>see evaluation/results/</td><td>—</td><td>—</td></tr>
+      <tr><td>Dense</td><td>see evaluation/results/</td><td>—</td><td>—</td></tr>
+      <tr><td>Hybrid</td><td>see evaluation/results/</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <p class="lead" style="margin-top:16px;">Full, real (never fabricated) numbers from the currently indexed corpus are written to <code>evaluation/results/*.json</code> by <code>python scripts/run_evaluation.py</code> — see the project README for the methodology and the honest caveats on the bundled sample corpus.</p>
+</section>
+
+<section class="info-section" id="about">
+  <h2>About</h2>
+  <p class="lead">
+    DocuVerify v2 is an agentic RAG reference implementation: structure-aware
+    ingestion, BM25/dense/hybrid retrieval, query classification with
+    per-strategy retrieval plans, a bounded evidence-driven retry loop, and
+    a fine-tuned transformer groundedness classifier that independently
+    verifies generated answers before they're returned. Source, tests, the
+    training pipeline, and the evaluation framework are in the repository.
+  </p>
+</section>
+
+<footer class="site-footer">DocuVerify v2 — agentic RAG with independent groundedness verification.</footer>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+// -------------------- Centralized API client --------------------
+const apiBaseInput = $('#apiBase');
+function defaultApiBase() {
+  const stored = localStorage.getItem('docuverify_api_base');
+  if (stored) return stored;
+  const params = new URLSearchParams(location.search);
+  if (params.get('api')) return params.get('api');
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:8000';
+  return ''; // force the user to configure it explicitly once deployed
+}
+apiBaseInput.value = defaultApiBase();
+apiBaseInput.addEventListener('change', () => localStorage.setItem('docuverify_api_base', apiBaseInput.value));
+
+const Api = {
+  base() { return (apiBaseInput.value || '').replace(/\/$/, ''); },
+  async post(path, body, { timeoutMs = 30000 } = {}) {
+    if (!this.base()) throw new ApiError('No API base URL is configured. Set it in the sidebar first.');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let resp;
+    try {
+      resp = await fetch(`${this.base()}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === 'AbortError') throw new ApiError(`Request timed out after ${timeoutMs / 1000}s.`);
+      throw new ApiError(`Could not reach ${this.base()}. The backend may be unreachable, asleep (Render free tier cold start can take ~30-60s), or blocked by CORS.`);
+    }
+    clearTimeout(timer);
+    if (!resp.ok) {
+      let detail = `request failed (HTTP ${resp.status})`;
+      try { const body = await resp.json(); if (body.detail) detail = body.detail; } catch {}
+      throw new ApiError(detail, resp.status);
+    }
+    try {
+      return await resp.json();
+    } catch {
+      throw new ApiError('The server returned a malformed response.');
+    }
+  },
+};
+
+class ApiError extends Error {
+  constructor(message, status) { super(message); this.status = status; }
+}
+
+// -------------------- Nav toggle (mobile) --------------------
+const navToggle = $('#navToggle');
+const primaryNav = $('#primaryNav');
+navToggle.addEventListener('click', () => {
+  const open = primaryNav.classList.toggle('open');
+  navToggle.setAttribute('aria-expanded', String(open));
+});
+primaryNav.addEventListener('click', (e) => {
+  if (e.target.tagName === 'A') { primaryNav.classList.remove('open'); navToggle.setAttribute('aria-expanded', 'false'); }
+});
+
+// -------------------- Example chips / clear --------------------
+$('#chips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  $('#question').value = chip.dataset.q;
+  ask();
+});
+$('#clearBtn').addEventListener('click', () => {
+  $('#question').value = '';
+  $('#results').style.display = 'none';
+  $('#loadingArea').style.display = 'none';
+  $('#empty').style.display = 'block';
+  $('#status').textContent = '';
+});
+$('#ask').addEventListener('click', ask);
+$('#question').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey || !e.shiftKey)) {
+    // Enter submits, Shift+Enter makes a newline
+    if (!e.shiftKey) { e.preventDefault(); ask(); }
+  }
+});
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function renderAnswer(text) {
+  return escapeHtml(text).replace(/\[(\d+)\]/g, '<span class="cite">[$1]</span>');
+}
+function stampClass(label) {
+  return { SUPPORTED: 'supported', CONTRADICTED: 'contradicted', UNSUPPORTED: 'unsupported' }[label] || 'unsupported';
+}
+
+// -------------------- Real staged loading via /query/stream (SSE over fetch) --------------------
+const STAGE_LABELS = {
+  classification_started: 'Analyzing query',
+  classification: 'Query classified',
+  retrieval: 'Searching documents',
+  post_groundedness_retry: 'Re-retrieving evidence',
+  generation: 'Generating answer',
+  groundedness: 'Verifying answer',
+  refusal: 'Insufficient evidence — refusing',
+};
+const STAGE_ORDER = ['classification_started', 'classification', 'retrieval', 'generation', 'groundedness'];
+
+function renderLoadingStages(doneSteps) {
+  const doneSet = new Set(doneSteps);
+  const rows = STAGE_ORDER.map((key, i) => {
+    const isDone = doneSet.has(key);
+    const isActive = !isDone && (i === 0 || doneSet.has(STAGE_ORDER[i - 1]));
+    const cls = isDone ? 'done' : isActive ? 'active' : '';
+    const icon = isDone ? '✓' : isActive ? '' : '';
+    return `<div class="lstep ${cls}"><span class="dot">${icon}</span>${STAGE_LABELS[key]}</div>`;
+  });
+  return `<section class="panel"><div class="panel-head"><h2>Working</h2></div><div class="panel-body"><div class="loading-pipeline">${rows.join('')}</div></div></section>`;
+}
+
+async function askViaStream(question, topK, debug) {
+  const doneSteps = [];
+  $('#loadingArea').innerHTML = renderLoadingStages(doneSteps);
+  $('#loadingArea').style.display = 'block';
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
+  let resp;
+  try {
+    resp = await fetch(`${Api.base()}/query/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, top_k: topK, debug }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') throw new ApiError('Request timed out.');
+    throw new ApiError(`Could not reach ${Api.base()}. It may be unreachable or asleep (cold start).`);
+  }
+  if (!resp.ok || !resp.body) {
+    clearTimeout(timer);
+    throw new ApiError(`Streaming request failed (HTTP ${resp.status}).`, resp.status);
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finalResponse = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop();
+    for (const part of parts) {
+      const line = part.split('\n').find(l => l.startsWith('data: '));
+      if (!line) continue;
+      let payload;
+      try { payload = JSON.parse(line.slice(6)); } catch { continue; }
+      if (payload.event === 'classification_started') {
+        doneSteps.push('classification_started');
+      } else if (payload.event === 'step') {
+        doneSteps.push(payload.step);
+      } else if (payload.event === 'final') {
+        finalResponse = payload.response;
+      }
+      $('#loadingArea').innerHTML = renderLoadingStages(doneSteps);
+    }
+  }
+  clearTimeout(timer);
+  if (!finalResponse) throw new ApiError('The stream ended without a final response.');
+  return finalResponse;
+}
+
+async function ask() {
+  const question = $('#question').value.trim();
+  if (!question) return;
+  const debug = $('#debug').checked;
+  const btn = $('#ask');
+  const status = $('#status');
+
+  btn.disabled = true;
+  status.className = 'status-line';
+  status.textContent = '';
+  $('#empty').style.display = 'none';
+  $('#results').style.display = 'none';
+
+  const startedAt = performance.now();
+  try {
+    let data;
+    try {
+      data = await askViaStream(question, 8, debug);
+    } catch (streamErr) {
+      // Fall back to the plain (non-streaming) endpoint if SSE isn't usable
+      // in this environment -- never fake stage completion, just drop the
+      // staged view and show a blocking status line instead.
+      $('#loadingArea').style.display = 'none';
+      status.textContent = 'Streaming unavailable — falling back to a single request…';
+      data = await Api.post('/query', { question, top_k: 8, debug });
+    }
+    $('#loadingArea').style.display = 'none';
+    renderResults(data);
+    const elapsed = Math.round(performance.now() - startedAt);
+    status.textContent = `done in ${data.latency_ms ?? elapsed}ms`;
+  } catch (err) {
+    $('#loadingArea').style.display = 'none';
+    status.className = 'status-line err';
+    status.textContent = 'Request failed — see details above.';
+    renderError(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderError(err) {
+  $('#results').style.display = 'block';
+  $('#results').innerHTML = `
+    <div class="error-banner">
+      <span class="icon">⚠</span>
+      <div>
+        <h3>Unable to reach DocuVerify</h3>
+        <p>${escapeHtml(err.message || 'An unknown error occurred.')}</p>
+        <p style="margin-top:8px;">The verification service may be temporarily unavailable, asleep (cold start on free hosting tiers), or the API base URL in the sidebar may be wrong. Please check it and try again.</p>
+      </div>
+    </div>`;
+}
+
+function renderResults(data) {
+  const results = $('#results');
+  results.style.display = 'block';
+
+  const stamp = stampClass(data.groundedness.label);
+  const confidencePct = Math.round((data.groundedness.confidence || 0) * 100);
+
+  let html = '';
+
+  if (data.refused) {
+    html += `
+      <div class="refusal-banner">
+        <span class="icon">⚠</span>
+        <div>
+          <h3>Couldn't verify a reliable answer</h3>
+          <p>The indexed documentation didn't contain enough supporting evidence for this question. This is intentional — DocuVerify avoids presenting an unsupported answer as fact.</p>
+        </div>
+      </div>`;
+  }
+
+  html += `
+    <section class="panel">
+      <div class="panel-head"><h2>Answer</h2></div>
+      <div class="panel-body">
+        <div class="answer-text">${renderAnswer(data.answer)}</div>
+        <div class="verdict-row">
+          <div class="stamp ${stamp}">
+            ${data.groundedness.label}
+            <span class="confidence">${confidencePct}% confidence</span>
+          </div>
+          <div class="meta-list">
+            <span><b>${data.query_type.replace('_', ' ')}</b> query</span>
+            <span><b>${data.retrieval_strategy}</b> retrieval</span>
+            <span><b>${data.retrieval_attempts}</b> attempt(s)</span>
+            <span><b>${data.latency_ms}ms</b> latency</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+
+  if (data.sources && data.sources.length) {
+    html += `
+      <section class="panel">
+        <div class="panel-head"><h2>Evidence ledger (${data.sources.length})</h2></div>
+        <div class="panel-body">
+          <div class="ledger-grid">
+            ${data.sources.map((s, i) => `
+              <div class="evidence-card">
+                <span class="idx">[${i + 1}]</span>
+                <h3>${escapeHtml(s.title)}</h3>
+                <div class="section">${escapeHtml(s.section || '—')}</div>
+                <div class="score-bar"><i style="width:${Math.min(100, Math.round(s.score * 100))}%"></i></div>
+                <div class="score-label">score ${s.score.toFixed(3)}</div>
+                <a href="${escapeHtml(s.source_url)}" target="_blank" rel="noopener">source ↗</a>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  if (data.trace) {
+    html += `
+      <section class="panel">
+        <div class="panel-head"><h2>Agent trace</h2></div>
+        <div class="panel-body">
+          <div class="pipeline">
+            ${data.trace.steps.map(step => `
+              <div class="step-node">
+                <div class="step-name">${step.step.replace(/_/g, ' ')}</div>
+                <div class="step-detail">${escapeHtml(JSON.stringify(step.detail))}</div>
+              </div>
+            `).join('')}
+          </div>
+          ${data.trace.subqueries && data.trace.subqueries.length ? `
+            <p class="eyebrow" style="margin-top:16px;">Decomposition</p>
+            <div class="pipeline">
+              ${data.trace.subqueries.map(sq => `<div class="step-node"><div class="step-detail">${escapeHtml(sq)}</div></div>`).join('')}
+            </div>
+          ` : ''}
+          <p class="eyebrow" style="margin-top:16px;">Retrieval attempts</p>
+          <div class="table-scroll">
+            <table class="attempts-table">
+              <thead><tr><th>#</th><th>Query</th><th>Strategy</th><th>Docs</th><th>Confidence</th><th>Sufficient</th></tr></thead>
+              <tbody>
+                ${data.trace.attempts.map(a => `
+                  <tr>
+                    <td>${a.attempt}</td>
+                    <td>${escapeHtml(a.query)}</td>
+                    <td>${a.strategy}</td>
+                    <td>${a.documents_retrieved}</td>
+                    <td>${(a.evidence.confidence * 100).toFixed(0)}%</td>
+                    <td><span class="badge ${a.evidence.sufficient ? 'yes' : 'no'}">${a.evidence.sufficient ? 'yes' : 'no'}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  if (data.claims && data.claims.length) {
+    html += `
+      <section class="panel">
+        <div class="panel-head"><h2>Claim-level verification</h2></div>
+        <div class="panel-body ledger-grid">
+          ${data.claims.map(c => `
+            <div class="evidence-card">
+              <span class="idx">${c.status}</span>
+              <p style="margin:10px 0 0 0; font-size:13.5px;">${escapeHtml(c.claim)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  results.innerHTML = html;
+}
+</script>
+</body>
+</html>

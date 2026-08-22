@@ -1,0 +1,44 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - VECTOR_DB_PATH=/app/data/processed/chroma
+      - BM25_INDEX_PATH=/app/data/processed/bm25_index.pkl
+      - GROUNDEDNESS_MODEL=/app/models/groundedness-classifier
+      - RAW_DATA_DIR=/app/data/raw
+      - CORS_ORIGINS=http://localhost:8080
+    volumes:
+      - ./data/processed:/app/data/processed
+      - ./data/raw:/app/data/raw
+      - ./models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Optional local LLM runtime. Only needed if LLM_PROVIDER=ollama (the
+  # default). Comment out / remove this service if you're using
+  # LLM_PROVIDER=openai_compatible with an external API instead.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+
+volumes:
+  ollama_data:

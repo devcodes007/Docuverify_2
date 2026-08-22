@@ -1,0 +1,61 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.config import Settings, get_settings
+from app.dependencies import get_bm25_index, get_vector_store, reset_caches
+from app.ingestion.loader import LocalMarkdownSource
+from app.ingestion.metadata import build_chunks
+from app.logging_config import get_logger, log_event
+from app.models.schemas import Chunk, IngestRequest, IngestResponse
+from app.retrieval.dense import build_embedder
+
+router = APIRouter(tags=["ingestion"])
+logger = get_logger(__name__)
+
+
+@router.post("/ingest", response_model=IngestResponse)
+def ingest(request: IngestRequest, settings: Settings = Depends(get_settings)) -> IngestResponse:
+    if request.source != "local":
+        raise HTTPException(
+            status_code=400,
+            detail="Only the 'local' source is wired into this endpoint by default; "
+            "see app/ingestion/loader.py to register a WebDocSource with an allowed-domain list.",
+        )
+
+    source = LocalMarkdownSource(settings.raw_data_dir)
+    documents = source.load()
+    if not documents:
+        raise HTTPException(status_code=404, detail=f"No documents found in {settings.raw_data_dir}")
+
+    chunks: list[Chunk] = build_chunks(
+        documents,
+        chunk_size_tokens=settings.chunk_size_tokens,
+        chunk_overlap_tokens=settings.chunk_overlap_tokens,
+    )
+
+    bm25_index = get_bm25_index()
+    bm25_index.build(chunks)
+    bm25_index.save(settings.bm25_index_path)
+
+    embedder = build_embedder(settings.embedding_model, fallback_dim=settings.embedding_dim)
+    vector_store = get_vector_store()
+    embeddings = embedder.embed([c.text for c in chunks])
+    vector_store.upsert(chunks, embeddings)
+
+    reset_caches()
+    log_event(logger, "ingestion_complete", documents=len(documents), chunks=len(chunks))
+    return IngestResponse(documents_ingested=len(documents), chunks_created=len(chunks))
+
+
+@router.get("/documents")
+def list_documents(settings: Settings = Depends(get_settings)) -> dict:
+    source = LocalMarkdownSource(settings.raw_data_dir)
+    documents = source.load()
+    return {
+        "count": len(documents),
+        "documents": [
+            {"document_id": d.document_id, "title": d.title, "source_url": d.source_url}
+            for d in documents
+        ],
+    }

@@ -1,0 +1,43 @@
+[
+  {
+    "question": "What does Depends do?",
+    "expected_keywords": ["depends", "dependency", "function"],
+    "gold_document_ids": ["dependencies"]
+  },
+  {
+    "question": "How does FastAPI resolve sub-dependencies?",
+    "expected_keywords": ["sub-dependencies", "dependency", "graph", "resolve"],
+    "gold_document_ids": ["dependencies"]
+  },
+  {
+    "question": "What happens when a dependency raises an HTTPException?",
+    "expected_keywords": ["httpexception", "stops", "exception", "propagates"],
+    "gold_document_ids": ["dependencies"]
+  },
+  {
+    "question": "What is the difference between Depends and middleware?",
+    "expected_keywords": ["depends", "middleware", "request", "response"],
+    "gold_document_ids": ["dependencies", "middleware"]
+  },
+  {
+    "question": "How does FastAPI validate request bodies?",
+    "expected_keywords": ["pydantic", "basemodel", "validate", "json"],
+    "gold_document_ids": ["validation"]
+  },
+  {
+    "question": "How does FastAPI dependency injection interact with request validation?",
+    "expected_keywords": ["dependency", "validation", "parameters", "422"],
+    "gold_document_ids": ["dependencies", "validation"]
+  },
+  {
+    "question": "How does CORSMiddleware work in FastAPI?",
+    "expected_keywords": ["cors", "origins", "allow_methods"],
+    "gold_document_ids": ["middleware"]
+  },
+  {
+    "question": "Does FastAPI have a built-in GraphQL subscription server?",
+    "expected_keywords": [],
+    "gold_document_ids": [],
+    "note": "intentionally not covered by the docs; system should refuse rather than hallucinate"
+  }
+]
