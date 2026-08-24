@@ -39,6 +39,21 @@ def _terms(text: str) -> set[str]:
     return {w for w in words if w not in _STOPWORDS and len(w) > 2}
 
 
+def _normalized_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text.lower()).strip()
+
+
+def _answer_quotes_context(answer: str, context: str) -> bool:
+    normalized_context = _normalized_text(context)
+    answer_without_citations = re.sub(r"\[\d+\]", "", answer)
+    sentences = [
+        _normalized_text(sentence).rstrip(".")
+        for sentence in re.split(r"(?<=[.!?])\s+", answer_without_citations)
+        if len(_normalized_text(sentence)) > 20
+    ]
+    return bool(sentences) and all(sentence in normalized_context for sentence in sentences)
+
+
 class GroundednessClassifier(Protocol):
     def predict(self, question: str, context: str, answer: str) -> GroundednessResult: ...
 
@@ -97,6 +112,13 @@ class HeuristicGroundednessClassifier:
         answer_terms = _terms(answer)
         if not answer_terms:
             return GroundednessResult(label=GroundednessLabel.UNSUPPORTED, confidence=0.5)
+
+        if _answer_quotes_context(answer, context):
+            return GroundednessResult(
+                label=GroundednessLabel.SUPPORTED,
+                confidence=0.95,
+                per_class_scores={"SUPPORTED": 0.95},
+            )
 
         overlap = answer_terms & context_terms
         coverage = len(overlap) / len(answer_terms)

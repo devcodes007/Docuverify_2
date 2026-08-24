@@ -750,6 +750,12 @@ async function ingestPdf() {
     uploadStatus.className = 'upload-status ok';
     uploadStatus.textContent = `Indexed ${result.documents_ingested} PDF into ${result.chunks_created} chunks. Ask a question now.`;
     $('#question').placeholder = `Ask about ${file.name}...`;
+    $('#question').value = '';
+    $('#results').style.display = 'none';
+    $('#loadingArea').style.display = 'none';
+    $('#empty').style.display = 'block';
+    $('#empty').textContent = `PDF indexed: ${file.name}. Ask a question about this document to see fresh evidence.`;
+    $('#status').textContent = '';
   } catch (err) {
     uploadStatus.className = 'upload-status err';
     uploadStatus.textContent = err.message || 'PDF ingestion failed.';

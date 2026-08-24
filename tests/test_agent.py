@@ -34,6 +34,15 @@ def test_high_score_full_coverage_is_sufficient():
     assert evaluation.confidence > 0.5
 
 
+def test_pdf_summary_instruction_words_do_not_block_sufficiency():
+    evaluator = DeterministicEvidenceEvaluator(sufficiency_threshold=0.55)
+    chunk = make_chunk("c1", "Problem 1.3 discusses probability distributions and expected value.")
+    results = [RetrievedChunk(chunk=chunk, score=0.75, dense_score=0.75)]
+    evaluation = evaluator.evaluate("give me summary of problem 1.3 from the provided pdf", results)
+    assert evaluation.sufficient is True
+    assert not evaluation.missing_information
+
+
 def test_low_score_poor_coverage_is_insufficient():
     evaluator = DeterministicEvidenceEvaluator(sufficiency_threshold=0.55)
     chunk = make_chunk("c1", "BackgroundTasks run code after the response.")

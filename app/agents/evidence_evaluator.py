@@ -20,9 +20,11 @@ from typing import Protocol
 from app.models.schemas import EvidenceEvaluation, RetrievedChunk
 
 _STOPWORDS = {
-    "the", "a", "an", "is", "are", "does", "do", "how", "what", "when",
+    "the", "a", "an", "is", "are", "does", "do", "how", "what", "when", "from",
     "why", "of", "to", "in", "on", "for", "and", "or", "with", "that",
     "this", "it", "its", "be", "can", "you", "your", "which",
+    "give", "summary", "summarize", "pdf", "provided", "please", "tell",
+    "show", "explain", "document", "file",
 }
 
 

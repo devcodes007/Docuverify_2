@@ -30,6 +30,14 @@ def test_supported_answer_high_overlap():
     assert result.label == GroundednessLabel.SUPPORTED
 
 
+def test_quoted_context_answer_is_supported_even_when_context_has_negation():
+    clf = HeuristicGroundednessClassifier()
+    context = "The document does not discuss deployment. Problem 1.3 covers expected value."
+    answer = "Problem 1.3 covers expected value. [1]"
+    result = clf.predict("give me summary of problem 1.3", context, answer)
+    assert result.label == GroundednessLabel.SUPPORTED
+
+
 def test_unsupported_answer_low_overlap():
     clf = HeuristicGroundednessClassifier()
     context = "FastAPI dependencies use Depends to declare reusable logic."
