@@ -18,7 +18,7 @@ from app.agents.retrieval_agent import RetrievalAgent
 from app.config import get_settings
 from app.generation.llm import build_llm_provider
 from app.retrieval.bm25 import BM25Index
-from app.retrieval.dense import ChromaVectorStore, build_embedder
+from app.retrieval.dense import ChromaVectorStore, QdrantVectorStore, build_embedder
 from app.retrieval.hybrid import HybridRetriever
 from app.verification.groundedness import build_groundedness_classifier
 
@@ -26,12 +26,23 @@ from app.verification.groundedness import build_groundedness_classifier
 @lru_cache
 def get_embedder(_settings_marker: int = 0):
     settings = get_settings()
+    if settings.vector_store_backend == "qdrant" and settings.qdrant_cloud_inference:
+        return None
     return build_embedder(settings.embedding_model, fallback_dim=settings.embedding_dim)
 
 
 @lru_cache
-def get_vector_store() -> ChromaVectorStore:
+def get_vector_store():
     settings = get_settings()
+    if settings.vector_store_backend == "qdrant":
+        return QdrantVectorStore(
+            url=settings.qdrant_url or "",
+            api_key=settings.qdrant_api_key,
+            collection_name=settings.qdrant_collection,
+            vector_size=settings.embedding_dim,
+            inference_model=settings.qdrant_inference_model,
+            cloud_inference=settings.qdrant_cloud_inference,
+        )
     return ChromaVectorStore(path=settings.vector_db_path, collection_name=settings.vector_db_collection)
 
 

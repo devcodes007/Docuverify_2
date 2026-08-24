@@ -34,8 +34,14 @@ class Settings(BaseSettings):
     # --- Embeddings / vector store ---
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dim: int = 384
+    vector_store_backend: str = "chroma"  # "chroma" | "qdrant"
     vector_db_path: str = "./data/processed/chroma"
     vector_db_collection: str = "docuverify_chunks"
+    qdrant_url: str | None = None
+    qdrant_api_key: str | None = None
+    qdrant_collection: str = "docuverify_chunks"
+    qdrant_cloud_inference: bool = False
+    qdrant_inference_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # --- BM25 ---
     bm25_index_path: str = "./data/processed/bm25_index.pkl"

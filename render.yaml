@@ -7,9 +7,7 @@ services:
   - type: web
     name: docuverify-backend
     runtime: docker
-    plan: standard          # torch+transformers need >512MB RAM; the free
-                             # plan's 512MB is too tight in practice -- see
-                             # README "Production Deployment" for sizing notes
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -20,13 +18,11 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: LLM_PROVIDER
-        value: mock          # placeholder: switch to "ollama" (with a
-                              # reachable host) or "openai_compatible" (set
-                              # OPENAI_API_KEY below) before real use
+        value: openai_compatible
       - key: LLM_MODEL
-        value: llama3.1
+        value: REPLACE_WITH_EXTERNAL_MODEL
       - key: LLM_API_BASE
-        value: http://localhost:11434
+        value: https://api.openai.com/v1
       - key: OPENAI_API_KEY
         sync: false           # set manually in the Render dashboard, never in git
       - key: HF_TOKEN
@@ -35,10 +31,22 @@ services:
         value: sentence-transformers/all-MiniLM-L6-v2
       - key: EMBEDDING_DIM
         value: "384"
+      - key: VECTOR_STORE_BACKEND
+        value: qdrant
       - key: VECTOR_DB_PATH
         value: /app/data/processed/chroma
       - key: VECTOR_DB_COLLECTION
         value: docuverify_chunks
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_COLLECTION
+        value: docuverify_chunks
+      - key: QDRANT_CLOUD_INFERENCE
+        value: "true"
+      - key: QDRANT_INFERENCE_MODEL
+        value: sentence-transformers/all-MiniLM-L6-v2
       - key: BM25_INDEX_PATH
         value: /app/data/processed/bm25_index.pkl
       - key: TOP_K
@@ -62,9 +70,13 @@ services:
       - key: RAW_DATA_DIR
         value: /app/data/raw
       - key: AUTO_INGEST_ON_STARTUP
-        value: "true"
+        value: "false"
       - key: REQUEST_TIMEOUT_SECONDS
         value: "30"
+      - key: TORCH_NUM_THREADS
+        value: "1"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
       # Set this to your actual Vercel domain(s) once deployed, comma-separated,
       # e.g. "https://docuverify.vercel.app,https://docuverify-git-main-you.vercel.app"
       - key: CORS_ORIGINS

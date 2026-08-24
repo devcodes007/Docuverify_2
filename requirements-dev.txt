@@ -1,0 +1,7 @@
+-r requirements-prod.txt
+
+chromadb>=0.5
+sentence-transformers>=3.0
+scikit-learn>=1.5
+pytest>=8.2
+pytest-asyncio>=0.23

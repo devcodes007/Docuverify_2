@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends
 
 from app.config import Settings, get_settings
-from app.dependencies import get_bm25_index, get_groundedness_classifier, get_vector_store
+from app.dependencies import get_bm25_index, get_vector_store
 from app.models.schemas import HealthResponse, InfoResponse
-from app.verification.groundedness import TransformerGroundednessClassifier
 
 router = APIRouter(tags=["health"])
 
@@ -14,12 +15,11 @@ router = APIRouter(tags=["health"])
 def health() -> HealthResponse:
     vector_store = get_vector_store()
     bm25_index = get_bm25_index()
-    groundedness = get_groundedness_classifier()
     return HealthResponse(
         status="ok",
         vector_store_ready=vector_store.is_ready(),
         bm25_index_ready=bm25_index.is_ready(),
-        groundedness_model_ready=isinstance(groundedness, TransformerGroundednessClassifier),
+        groundedness_model_ready=Path(get_settings().groundedness_model).exists(),
     )
 
 

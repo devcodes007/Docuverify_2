@@ -31,7 +31,7 @@ def _normalize(scores: dict[str, float]) -> dict[str, float]:
 
 
 class HybridRetriever:
-    def __init__(self, bm25_index: BM25Index, vector_store: VectorStore, embedder: EmbeddingProvider):
+    def __init__(self, bm25_index: BM25Index, vector_store: VectorStore, embedder: EmbeddingProvider | None):
         self.bm25_index = bm25_index
         self.vector_store = vector_store
         self.embedder = embedder
@@ -41,14 +41,14 @@ class HybridRetriever:
         return [RetrievedChunk(chunk=r.chunk, score=r.score, bm25_score=r.score) for r in results]
 
     def search_dense(self, query: str, top_k: int) -> list[RetrievedChunk]:
-        [embedding] = self.embedder.embed([query])
-        results = self.vector_store.query(embedding, top_k=top_k)
+        embedding = self._embed_query(query)
+        results = self.vector_store.query(embedding, top_k=top_k, query_text=query)
         return [RetrievedChunk(chunk=r.chunk, score=r.score, dense_score=r.score) for r in results]
 
     def search_hybrid(self, query: str, top_k: int, alpha: float = 0.6) -> list[RetrievedChunk]:
         bm25_results = self.bm25_index.search(query, top_k=max(top_k * 3, top_k))
-        [embedding] = self.embedder.embed([query])
-        dense_results = self.vector_store.query(embedding, top_k=max(top_k * 3, top_k))
+        embedding = self._embed_query(query)
+        dense_results = self.vector_store.query(embedding, top_k=max(top_k * 3, top_k), query_text=query)
 
         bm25_by_id = {r.chunk.chunk_id: r for r in bm25_results}
         dense_by_id = {r.chunk.chunk_id: r for r in dense_results}
@@ -73,3 +73,11 @@ class HybridRetriever:
             )
         combined.sort(key=lambda r: r.score, reverse=True)
         return combined[:top_k]
+
+    def _embed_query(self, query: str) -> list[float] | None:
+        if not self.vector_store.requires_embeddings:
+            return None
+        if self.embedder is None:
+            raise ValueError("A local embedder is required for this vector store.")
+        [embedding] = self.embedder.embed([query])
+        return embedding

@@ -83,9 +83,11 @@ def _rebuild_indexes(documents, settings: Settings) -> IngestResponse:
     bm25_index.build(chunks)
     bm25_index.save(settings.bm25_index_path)
 
-    embedder = build_embedder(settings.embedding_model, fallback_dim=settings.embedding_dim)
     vector_store = get_vector_store()
-    embeddings = embedder.embed([c.text for c in chunks])
+    embeddings = None
+    if vector_store.requires_embeddings:
+        embedder = build_embedder(settings.embedding_model, fallback_dim=settings.embedding_dim)
+        embeddings = embedder.embed([c.text for c in chunks])
     vector_store.replace(chunks, embeddings)
 
     reset_caches()

@@ -54,8 +54,11 @@ def _auto_ingest_if_empty() -> None:
     chunks = build_chunks(documents, settings.chunk_size_tokens, settings.chunk_overlap_tokens)
     bm25.build(chunks)
     bm25.save(settings.bm25_index_path)
-    embedder = build_embedder(settings.embedding_model, fallback_dim=settings.embedding_dim)
-    vector_store.upsert(chunks, embedder.embed([c.text for c in chunks]))
+    embeddings = None
+    if vector_store.requires_embeddings:
+        embedder = build_embedder(settings.embedding_model, fallback_dim=settings.embedding_dim)
+        embeddings = embedder.embed([c.text for c in chunks])
+    vector_store.replace(chunks, embeddings)
     reset_caches()
     log_event(logger, "auto_ingest_complete", documents=len(documents), chunks=len(chunks))
 

@@ -1,0 +1,7 @@
+-r requirements-dev.txt
+
+accelerate>=1.1.0
+sentence-transformers>=3.0
+datasets>=2.20
+scikit-learn>=1.5
+pandas>=2.2
