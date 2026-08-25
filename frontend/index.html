@@ -497,6 +497,22 @@
 <div class="layout" id="ask">
   <aside class="desk">
     <p class="eyebrow">Ask the documentation</p>
+
+    <div class="upload-card" id="upload">
+      <p class="eyebrow">Ingest a PDF</p>
+      <h2 class="upload-title">Ask questions from your own document</h2>
+      <p class="upload-copy">Upload a text-based PDF. DocuVerify extracts, chunks, indexes, and verifies answers against it.</p>
+      <label class="upload-drop" for="pdfFile">
+        <strong>Choose PDF</strong>
+        <span id="pdfFileName">No file selected · max 15 MB</span>
+      </label>
+      <input id="pdfFile" type="file" accept="application/pdf,.pdf" hidden />
+      <div class="upload-actions">
+        <button id="uploadPdf" type="button">Ingest PDF →</button>
+      </div>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+
     <textarea id="question" placeholder="e.g. How does FastAPI dependency injection interact with request validation?"></textarea>
 
     <div class="chips" id="chips">
@@ -515,21 +531,6 @@
     <button id="ask">Ask →</button>
     <button id="clearBtn">Clear</button>
     <div class="status-line" id="status"></div>
-
-    <div class="upload-card" id="upload">
-      <p class="eyebrow">Ingest a PDF</p>
-      <h2 class="upload-title">Ask questions from your own document</h2>
-      <p class="upload-copy">Upload a text-based PDF. DocuVerify extracts, chunks, indexes, and verifies answers against it.</p>
-      <label class="upload-drop" for="pdfFile">
-        <strong>Choose PDF</strong>
-        <span id="pdfFileName">No file selected · max 15 MB</span>
-      </label>
-      <input id="pdfFile" type="file" accept="application/pdf,.pdf" hidden />
-      <div class="upload-actions">
-        <button id="uploadPdf" type="button">Ingest PDF →</button>
-      </div>
-      <div class="upload-status" id="uploadStatus"></div>
-    </div>
 
     <div class="settings">
       <label for="apiBase">API base URL</label>
