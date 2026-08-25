@@ -611,7 +611,7 @@ function defaultApiBase() {
   const params = new URLSearchParams(location.search);
   if (params.get('api')) return params.get('api');
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return 'http://localhost:8000';
-  return ''; // force the user to configure it explicitly once deployed
+  return 'https://docuverify-2-1.onrender.com';
 }
 apiBaseInput.value = defaultApiBase();
 apiBaseInput.addEventListener('change', () => localStorage.setItem('docuverify_api_base', apiBaseInput.value));
@@ -619,7 +619,7 @@ apiBaseInput.addEventListener('change', () => localStorage.setItem('docuverify_a
 const Api = {
   base() { return (apiBaseInput.value || '').replace(/\/$/, ''); },
   async post(path, body, { timeoutMs = 30000 } = {}) {
-    if (!this.base()) throw new ApiError('No API base URL is configured. Set it in the sidebar first.');
+    if (!this.base()) throw new ApiError('No API base URL is configured. Set it in the API base URL field.');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let resp;
@@ -648,7 +648,7 @@ const Api = {
     }
   },
   async upload(path, formData, { timeoutMs = 120000 } = {}) {
-    if (!this.base()) throw new ApiError('No API base URL is configured. Set it in the sidebar first.');
+    if (!this.base()) throw new ApiError('No API base URL is configured. Set it in the API base URL field.');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let resp;
