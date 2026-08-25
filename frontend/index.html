@@ -499,7 +499,7 @@
     <p class="eyebrow">Ask the documentation</p>
 
     <div class="upload-card" id="upload">
-      <p class="eyebrow">Ingest a PDF</p>
+      <p class="eyebrow">Upload a PDF</p>
       <h2 class="upload-title">Ask questions from your own document</h2>
       <p class="upload-copy">Upload a text-based PDF. DocuVerify extracts, chunks, indexes, and verifies answers against it.</p>
       <label class="upload-drop" for="pdfFile">
@@ -508,7 +508,7 @@
       </label>
       <input id="pdfFile" type="file" accept="application/pdf,.pdf" hidden />
       <div class="upload-actions">
-        <button id="uploadPdf" type="button">Ingest PDF →</button>
+        <button id="uploadPdf" type="button">Upload PDF →</button>
       </div>
       <div class="upload-status" id="uploadStatus"></div>
     </div>
@@ -662,7 +662,7 @@ const Api = {
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') throw new ApiError(`Upload timed out after ${timeoutMs / 1000}s.`);
-      throw new ApiError(`Could not reach ${this.base()} for PDF ingestion. Check the API base URL and backend status.`);
+      throw new ApiError(`Could not reach ${this.base()} for PDF upload. Check the API base URL and backend status.`);
     }
     clearTimeout(timer);
     if (!resp.ok) {
@@ -749,7 +749,7 @@ async function ingestPdf() {
     formData.append('file', file);
     const result = await Api.upload('/ingest/pdf', formData);
     uploadStatus.className = 'upload-status ok';
-    uploadStatus.textContent = `Indexed ${result.documents_ingested} PDF into ${result.chunks_created} chunks. Ask a question now.`;
+    uploadStatus.textContent = `Uploaded and indexed ${result.documents_ingested} PDF into ${result.chunks_created} chunks. Ask a question now.`;
     $('#question').placeholder = `Ask about ${file.name}...`;
     $('#question').value = '';
     $('#results').style.display = 'none';
@@ -759,7 +759,7 @@ async function ingestPdf() {
     $('#status').textContent = '';
   } catch (err) {
     uploadStatus.className = 'upload-status err';
-    uploadStatus.textContent = err.message || 'PDF ingestion failed.';
+    uploadStatus.textContent = err.message || 'PDF upload failed.';
   } finally {
     uploadPdfBtn.disabled = false;
   }
